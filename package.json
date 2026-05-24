@@ -1,0 +1,11 @@
+{
+  "name": "ict-screener",
+  "version": "1.0.0",
+  "description": "ICT Smart Money Screener — OB · FVG · MSB · LS · OTE",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "yahoo-finance2": "2.11.3"
+  }
+}
