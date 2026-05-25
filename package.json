@@ -1,9 +1,0 @@
-{
-  "name": "ict-screener",
-  "version": "1.0.0",
-  "description": "ICT Smart Money Screener \u2014 OB \u00b7 FVG \u00b7 MSB \u00b7 LS \u00b7 OTE",
-  "scripts": {
-    "dev": "vercel dev"
-  },
-  "dependencies": {}
-}
