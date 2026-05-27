@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICT Smart Money Screener</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'SF Mono','Cascadia Code','Fira Code',monospace;background:#0d0d0f;color:#d1d5db;font-size:13px;min-height:100vh}
+a{color:inherit}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:#111}
+::-webkit-scrollbar-thumb{background:#303030;border-radius:3px}
+
+/* ── Header ── */
+.hdr{
+  padding:11px 20px;border-bottom:1px solid #1e1e24;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:50;background:#0d0d0f;
+}
+.logo{display:flex;align-items:center;gap:12px}
+.ict-badge{background:#10b981;color:#000;font-size:11px;font-weight:700;padding:3px 9px;border-radius:4px;letter-spacing:1.5px}
+.logo-title{font-size:15px;font-weight:500;color:#f3f4f6}
+.logo-sub{font-size:10px;color:#6b7280;margin-top:2px;letter-spacing:.3px}
+.hdr-right{display:flex;align-items:center;gap:14px;font-size:11px;color:#6b7280}
+.hdr-bull{color:#10b981;font-weight:600}
+.hdr-bear{color:#ef4444;font-weight:600}
+
+.scan-btn{
+  display:flex;align-items:center;gap:7px;
+  padding:7px 18px;border-radius:5px;
+  border:1px solid #10b981;background:rgba(16,185,129,.1);
+  color:#10b981;font-size:12px;font-weight:600;
+  cursor:pointer;font-family:inherit;letter-spacing:.5px;transition:all .15s;
+}
+.scan-btn:hover{background:rgba(16,185,129,.2)}
+.scan-btn:disabled{opacity:.4;cursor:not-allowed}
+.scan-btn.scanning{border-color:#f59e0b;background:rgba(245,158,11,.1);color:#f59e0b}
+.pulse{width:7px;height:7px;border-radius:50%;background:currentColor;animation:pls 1s infinite;flex-shrink:0}
+@keyframes pls{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.25;transform:scale(.5)}}
+
+/* ── Progress ── */
+.progress-bar{height:2px;background:#1a1a20}
+.progress-fill{height:100%;background:#10b981;transition:width .3s;width:0}
+
+/* ── Stats strip ── */
+.stats{display:grid;grid-template-columns:repeat(6,1fr);border-bottom:1px solid #1e1e24}
+.stat{padding:9px 16px;border-right:1px solid #1e1e24}
+.stat:last-child{border-right:none}
+.stat-l{font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:#6b7280;margin-bottom:4px}
+.stat-v{font-size:18px;font-weight:500;color:#f3f4f6}
+.g{color:#10b981!important}.r{color:#ef4444!important}
+.a{color:#f59e0b!important}.b{color:#60a5fa!important}.p{color:#a78bfa!important}
+
+/* ── Toolbar ── */
+.toolbar{
+  padding:8px 20px;display:flex;align-items:center;gap:6px;
+  border-bottom:1px solid #1e1e24;flex-wrap:wrap;
+  background:#0d0d0f;position:sticky;top:52px;z-index:40;
+}
+.tab{
+  padding:5px 14px;border-radius:4px;border:1px solid #2a2a32;
+  background:transparent;color:#9ca3af;font-size:12px;
+  cursor:pointer;font-family:inherit;transition:all .15s;
+}
+.tab.on{background:#10b981;color:#000;border-color:#10b981;font-weight:700}
+.tab:hover:not(.on){color:#d1d5db;border-color:#3a3a44}
+.div-v{width:1px;height:18px;background:#2a2a32;margin:0 2px;flex-shrink:0}
+.flabel{font-size:10px;color:#6b7280;flex-shrink:0}
+.fb{
+  padding:3px 10px;border-radius:3px;border:1px solid #2a2a32;
+  background:transparent;color:#9ca3af;font-size:11px;
+  cursor:pointer;font-family:inherit;transition:all .15s;
+}
+.fb.on{background:rgba(255,255,255,.08);border-color:currentColor;font-weight:600}
+.fb:hover:not(.on){color:#d1d5db}
+.sel{
+  padding:4px 8px;border-radius:3px;border:1px solid #2a2a32;
+  background:#13131a;color:#d1d5db;font-size:11px;
+  font-family:inherit;cursor:pointer;
+}
+.res-count{margin-left:auto;font-size:11px;color:#6b7280;flex-shrink:0}
+
+/* ── Table ── */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:1100px}
+thead tr{border-bottom:1px solid #1e1e24}
+th{
+  text-align:left;padding:7px 14px;
+  font-size:9px;text-transform:uppercase;letter-spacing:.8px;
+  color:#6b7280;font-weight:500;white-space:nowrap;user-select:none;
+}
+th.r{text-align:right}
+tbody tr{border-bottom:1px solid #141419;cursor:pointer;transition:background .1s}
+tbody tr:hover,tbody tr.expanded{background:rgba(255,255,255,.03)}
+tbody tr.wl-row{border-left:2px solid rgba(245,158,11,.5)}
+td{padding:9px 14px;vertical-align:middle;white-space:nowrap;color:#d1d5db}
+
+.num-col{color:#4b5563;font-size:11px;width:34px}
+.ticker-col{font-weight:600;letter-spacing:.5px;color:#f9fafb;font-size:13px}
+.name-col{color:#9ca3af;font-size:11px;max-width:130px;overflow:hidden;text-overflow:ellipsis}
+.sector-tag{font-size:10px;color:#9ca3af;background:#1e1e28;padding:2px 7px;border-radius:3px;border:1px solid #2a2a36}
+.price-col{font-weight:500;color:#f9fafb}
+.chg-pos{color:#10b981;font-weight:600}.chg-neg{color:#ef4444;font-weight:600}
+
+.sigs{display:flex;gap:3px}
+.sig{font-size:10px;padding:2px 7px;border-radius:3px;font-weight:700;letter-spacing:.3px}
+
+.str-wrap{display:flex;align-items:center;gap:7px}
+.str-bar{width:56px;height:3px;background:#1e1e28;border-radius:2px}
+.str-fill{height:100%;border-radius:2px;transition:width .4s}
+.str-num{font-size:11px;font-weight:600;min-width:28px}
+
+.bias-bull{color:#10b981;font-size:11px;font-weight:700}
+.bias-bear{color:#ef4444;font-size:11px;font-weight:700}
+
+.vr-hi{color:#f59e0b;font-weight:600}.vr-lo{color:#6b7280}
+.lvl-entry{color:#d1d5db}.lvl-stop{color:#ef4444}.lvl-target{color:#10b981}.lvl-rr{color:#60a5fa}
+
+.wl-star{
+  font-size:15px;cursor:pointer;transition:all .15s;
+  background:none;border:none;padding:2px 4px;color:#6b7280;
+}
+.wl-star.in{color:#f59e0b}
+.wl-star:not(.in):hover{color:#9ca3af}
+
+/* ── Detail expand row ── */
+.detail-row{background:#111116}
+.detail-row td{padding:16px 22px}
+.detail-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+.dl{font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:#6b7280;margin-bottom:10px;font-weight:500}
+.dv-row{display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-bottom:6px}
+.dv-k{color:#9ca3af}.dv-v{font-weight:600;color:#f9fafb}
+.desc-text{font-size:11px;color:#9ca3af;line-height:1.7;border-left:2px solid #2a2a36;padding-left:10px;margin-bottom:12px}
+.ext-links{display:flex;gap:12px}
+.ext-link{font-size:11px;color:#60a5fa;text-decoration:none;opacity:.7;transition:opacity .15s}
+.ext-link:hover{opacity:1}
+
+/* ── Empty / loading ── */
+.empty{text-align:center;padding:70px 20px;color:#4b5563}
+.empty-ico{font-size:42px;opacity:.2;margin-bottom:14px}
+.empty-t{font-size:14px;color:#9ca3af;margin-bottom:8px;font-weight:500}
+.empty-s{font-size:12px;line-height:2;color:#6b7280}
+.shimmer{
+  background:linear-gradient(90deg,#131318 25%,#1a1a22 50%,#131318 75%);
+  background-size:200%;animation:shim 1.4s infinite;
+  height:38px;margin:1px 0;border-radius:2px;
+}
+@keyframes shim{0%{background-position:-200% 0}100%{background-position:200% 0}}
+
+/* ── Footer ── */
+footer{
+  padding:10px 20px;border-top:1px solid #1e1e24;
+  display:flex;justify-content:space-between;
+  font-size:10px;color:#4b5563;flex-wrap:wrap;gap:6px;
+}
+.sig-legend{display:flex;gap:12px;flex-wrap:wrap}
+.sig-leg{display:flex;align-items:center;gap:4px}
+.sig-dot{width:7px;height:7px;border-radius:2px}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="logo">
+    <span class="ict-badge">ICT</span>
+    <div>
+      <div class="logo-title">Smart Money Screener</div>
+      <div class="logo-sub">OB · FVG · MSB · LS · OTE · Real-time US Stocks</div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <span id="hdrStats">— stocks</span>
+    <button class="scan-btn" id="scanBtn" onclick="toggleScan()">
+      <span class="pulse" id="pulseDot" style="display:none"></span>
+      <span id="scanTxt">⟳ SCAN MARKET</span>
+    </button>
+  </div>
+</div>
+
+<div class="progress-bar"><div class="progress-fill" id="pFill"></div></div>
+
+<div class="stats">
+  <div class="stat"><div class="stat-l">Scanned</div><div class="stat-v" id="stScanned" style="color:#9ca3af">0</div></div>
+  <div class="stat"><div class="stat-l">Signals Found</div><div class="stat-v g" id="stFound">0</div></div>
+  <div class="stat"><div class="stat-l">▲ Bullish</div><div class="stat-v g" id="stBull">0</div></div>
+  <div class="stat"><div class="stat-l">▼ Bearish</div><div class="stat-v r" id="stBear">0</div></div>
+  <div class="stat"><div class="stat-l">★ Watchlist</div><div class="stat-v a" id="stWL">0</div></div>
+  <div class="stat"><div class="stat-l">Top Signal</div><div class="stat-v p" id="stTop">—</div></div>
+</div>
+
+<div class="toolbar">
+  <button class="tab on" id="tabS" onclick="swTab('s')">Scanner</button>
+  <button class="tab" id="tabW" onclick="swTab('w')">
+    Watchlist&nbsp;<span id="wlBadge" style="font-size:10px;background:rgba(16,185,129,.18);color:#10b981;padding:1px 6px;border-radius:10px">0</span>
+  </button>
+  <div class="div-v"></div>
+  <span class="flabel">Signal:</span>
+  <button class="fb on" data-f="ALL" onclick="setFlt('ALL',this)">ALL</button>
+  <button class="fb" data-f="OB"  style="color:#10b981" onclick="setFlt('OB',this)">OB</button>
+  <button class="fb" data-f="FVG" style="color:#818cf8" onclick="setFlt('FVG',this)">FVG</button>
+  <button class="fb" data-f="MSB" style="color:#f59e0b" onclick="setFlt('MSB',this)">MSB</button>
+  <button class="fb" data-f="LS"  style="color:#f87171" onclick="setFlt('LS',this)">LS</button>
+  <button class="fb" data-f="OTE" style="color:#38bdf8" onclick="setFlt('OTE',this)">OTE</button>
+  <div class="div-v"></div>
+  <span class="flabel">Bias:</span>
+  <button class="fb on" data-b="ALL" onclick="setBias('ALL',this)">All</button>
+  <button class="fb" data-b="bullish" style="color:#10b981" onclick="setBias('bullish',this)">▲ Bull</button>
+  <button class="fb" data-b="bearish" style="color:#ef4444" onclick="setBias('bearish',this)">▼ Bear</button>
+  <div class="div-v"></div>
+  <select class="sel" id="sectorSel" onchange="render()"><option value="ALL">All Sectors</option></select>
+  <span class="flabel">Min&nbsp;Strength:</span>
+  <select class="sel" id="minStr" onchange="render()">
+    <option value="1">1+</option><option value="2">2+</option>
+    <option value="3">3+</option><option value="4" selected>4+</option>
+    <option value="5">5+</option><option value="6">6+</option>
+    <option value="7">7+</option><option value="8">8+</option>
+  </select>
+  <select class="sel" id="sortSel" onchange="render()">
+    <option value="strength">Sort: Strength</option>
+    <option value="change">Sort: % Change</option>
+    <option value="rr">Sort: R:R</option>
+    <option value="volume">Sort: Vol×</option>
+    <option value="signals">Sort: Signals</option>
+  </select>
+  <span class="res-count" id="resCount">0 results</span>
+</div>
+
+<div class="table-wrap" id="tableWrap">
+  <table id="mainTable" style="display:none">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Ticker</th><th>Name</th><th>Sector</th>
+        <th class="r">Price</th><th class="r">Chg%</th>
+        <th>ICT Signals</th><th>Strength</th><th>Bias</th>
+        <th class="r">Entry</th><th class="r">Stop</th>
+        <th class="r">Target</th><th class="r">R:R</th>
+        <th class="r">Vol×</th><th>★</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div id="emptyState" class="empty">
+    <div class="empty-ico">⬡</div>
+    <div class="empty-t">ICT Scanner 已就绪</div>
+    <div class="empty-s" id="emptySub">
+      点击 SCAN MARKET 开始扫描美股 ICT 信号<br>
+      <span style="color:#10b981">OB</span> Order Block &nbsp;·&nbsp;
+      <span style="color:#818cf8">FVG</span> Fair Value Gap &nbsp;·&nbsp;
+      <span style="color:#f59e0b">MSB</span> Market Str Break<br>
+      <span style="color:#f87171">LS</span> Liquidity Sweep &nbsp;·&nbsp;
+      <span style="color:#38bdf8">OTE</span> Optimal Entry
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span>ICT Smart Money Screener &nbsp;·&nbsp; Data: Yahoo Finance (15-min delay) &nbsp;·&nbsp; <span style="color:#f59e0b88">Not financial advice</span></span>
+  <div class="sig-legend">
+    <div class="sig-leg"><div class="sig-dot" style="background:#10b981"></div><span>OB Order Block</span></div>
+    <div class="sig-leg"><div class="sig-dot" style="background:#818cf8"></div><span>FVG Fair Value Gap</span></div>
+    <div class="sig-leg"><div class="sig-dot" style="background:#f59e0b"></div><span>MSB Structure Break</span></div>
+    <div class="sig-leg"><div class="sig-dot" style="background:#f87171"></div><span>LS Liquidity Sweep</span></div>
+    <div class="sig-leg"><div class="sig-dot" style="background:#38bdf8"></div><span>OTE Optimal Entry</span></div>
+  </div>
+</footer>
+
+<script>
+const SIG={
+  OB: {c:"#10b981",bg:"rgba(16,185,129,.15)",border:"rgba(16,185,129,.35)"},
+  FVG:{c:"#818cf8",bg:"rgba(129,140,248,.15)",border:"rgba(129,140,248,.35)"},
+  MSB:{c:"#f59e0b",bg:"rgba(245,158,11,.15)", border:"rgba(245,158,11,.35)"},
+  LS: {c:"#f87171",bg:"rgba(248,113,113,.15)",border:"rgba(248,113,113,.35)"},
+  OTE:{c:"#38bdf8",bg:"rgba(56,189,248,.15)", border:"rgba(56,189,248,.35)"},
+};
+
+let results=[], wl=new Set(), curFlt="ALL", curBias="ALL", curTab="s";
+let scanning=false, abortFlag=false;
+let totalStocks=0, batchSize=12, scanned=0, found=0, expandedTicker=null;
+
+// Helpers
+const fmt=(n,d=2)=>Number(n).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtV=n=>n>=1e9?(n/1e9).toFixed(1)+"B":n>=1e6?(n/1e6).toFixed(1)+"M":n>=1e3?(n/1e3).toFixed(0)+"K":String(n);
+
+// Load WL from localStorage
+try{const s=localStorage.getItem("ict-wl-v5");if(s)wl=new Set(JSON.parse(s));}catch{}
+function saveWL(){try{localStorage.setItem("ict-wl-v5",JSON.stringify([...wl]));}catch{}}
+
+function swTab(t){
+  curTab=t;
+  document.getElementById("tabS").className="tab"+(t==="s"?" on":"");
+  document.getElementById("tabW").className="tab"+(t==="w"?" on":"");
+  render();
+}
+function setFlt(f,btn){
+  curFlt=f;
+  document.querySelectorAll("[data-f]").forEach(b=>b.classList.remove("on"));
+  btn.classList.add("on"); render();
+}
+function setBias(b,btn){
+  curBias=b;
+  document.querySelectorAll("[data-b]").forEach(x=>x.classList.remove("on"));
+  btn.classList.add("on"); render();
+}
+
+async function toggleScan(){
+  if(scanning){abortFlag=true;return;}
+  abortFlag=false; scanning=true;
+  results=[];scanned=0;found=0;expandedTicker=null;
+  updateStats();
+
+  const btn=document.getElementById("scanBtn");
+  btn.className="scan-btn scanning";
+  document.getElementById("pulseDot").style.display="inline-block";
+  document.getElementById("scanTxt").textContent=" STOP SCAN";
+
+  // Get meta
+  try{
+    const m=await fetch("/api/scan?meta").then(r=>r.json());
+    totalStocks=m.total||1200; batchSize=m.batchSize||12;
+  }catch{totalStocks=1200;}
+
+  const totalBatches=Math.ceil(totalStocks/batchSize);
+  const CONCURRENCY=6;
+  let batchIdx=0; const queue=[];
+
+  const runBatch=async(idx)=>{
+    if(abortFlag)return;
+    try{
+      const data=await fetch(`/api/scan?batch=${idx}`).then(r=>r.json());
+      const batch=data.results||[];
+      scanned=Math.min((idx+1)*batchSize,totalStocks);
+      found+=batch.length;
+      // Merge results (avoid duplicates)
+      batch.forEach(r=>{
+        const i=results.findIndex(x=>x.ticker===r.ticker);
+        if(i>=0)results[i]=r; else results.push(r);
+      });
+      updateStats(); render();
+    }catch(e){if(!abortFlag)console.warn("batch",idx,e.message);}
+  };
+
+  for(let i=0;i<totalBatches;i++){
+    if(abortFlag)break;
+    const p=runBatch(batchIdx++);
+    queue.push(p);
+    if(queue.length>=CONCURRENCY)await Promise.all(queue.splice(0,CONCURRENCY));
+  }
+  await Promise.all(queue);
+
+  scanning=false; abortFlag=false;
+  btn.className="scan-btn";
+  document.getElementById("pulseDot").style.display="none";
+  document.getElementById("scanTxt").textContent="⟳ SCAN MARKET";
+  document.getElementById("pFill").style.width="100%";
+  updateStats(); render();
+}
+
+function updateStats(){
+  const bull=results.filter(r=>r.bias==="bullish").length;
+  const bear=results.filter(r=>r.bias==="bearish").length;
+  const sorted=[...results].sort((a,b)=>b.strength-a.strength);
+  const top=sorted[0]?.ticker||"—";
+  const pct=totalStocks>0?Math.round((scanned/totalStocks)*100):0;
+
+  document.getElementById("stScanned").textContent=`${scanned}/${totalStocks}`;
+  document.getElementById("stFound").textContent=found;
+  document.getElementById("stBull").textContent=bull;
+  document.getElementById("stBear").textContent=bear;
+  document.getElementById("stWL").textContent=wl.size;
+  document.getElementById("stTop").textContent=top;
+  document.getElementById("wlBadge").textContent=wl.size;
+  document.getElementById("pFill").style.width=pct+"%";
+  document.getElementById("hdrStats").innerHTML=
+    `${totalStocks} stocks &nbsp;·&nbsp; `+
+    `<span class="hdr-bull">${bull} ▲</span> &nbsp;·&nbsp; `+
+    `<span class="hdr-bear">${bear} ▼</span>`;
+}
+
+function populateSectors(){
+  const secs=new Set(results.map(r=>r.sector));
+  const sel=document.getElementById("sectorSel");
+  const cur=sel.value;
+  sel.innerHTML='<option value="ALL">All Sectors</option>';
+  [...secs].sort().forEach(s=>{
+    const o=document.createElement("option");
+    o.value=s; o.textContent=s;
+    if(s===cur)o.selected=true;
+    sel.appendChild(o);
+  });
+}
+
+function render(){
+  populateSectors();
+  const sector=document.getElementById("sectorSel").value;
+  const minStr=parseInt(document.getElementById("minStr").value||"4");
+  const sortBy=document.getElementById("sortSel").value;
+
+  let rows=[...results];
+  if(curTab==="w") rows=rows.filter(r=>wl.has(r.ticker));
+  if(curFlt!=="ALL") rows=rows.filter(r=>r.signals.includes(curFlt));
+  if(curBias!=="ALL") rows=rows.filter(r=>r.bias===curBias);
+  if(sector!=="ALL") rows=rows.filter(r=>r.sector===sector);
+  rows=rows.filter(r=>r.strength>=minStr);
+
+  if(sortBy==="strength") rows.sort((a,b)=>b.strength-a.strength);
+  else if(sortBy==="change") rows.sort((a,b)=>b.changePct-a.changePct);
+  else if(sortBy==="rr") rows.sort((a,b)=>b.rr-a.rr);
+  else if(sortBy==="volume") rows.sort((a,b)=>b.volRatio-a.volRatio);
+  else rows.sort((a,b)=>b.signals.length-a.signals.length);
+
+  document.getElementById("resCount").textContent=`${rows.length} results`;
+  const tbody=document.getElementById("tbody");
+  const table=document.getElementById("mainTable");
+  const empty=document.getElementById("emptyState");
+
+  if(scanning && rows.length===0){
+    table.style.display="none"; empty.style.display="none";
+    document.getElementById("tableWrap").innerHTML=
+      '<div id="emptyState" class="empty" style="display:none"></div>'+
+      ['','','','','','','',''].map(()=>'<div class="shimmer" style="margin:1px 20px;border-radius:3px"></div>').join('');
+    return;
+  }
+
+  if(!rows.length){
+    table.style.display="none"; empty.style.display="block";
+    document.getElementById("emptySub").innerHTML = !results.length
+      ? `点击 SCAN MARKET 开始扫描美股 ICT 信号<br>
+         <span style="color:#10b981">OB</span> Order Block &nbsp;·&nbsp;
+         <span style="color:#818cf8">FVG</span> Fair Value Gap &nbsp;·&nbsp;
+         <span style="color:#f59e0b">MSB</span> Market Str Break<br>
+         <span style="color:#f87171">LS</span> Liquidity Sweep &nbsp;·&nbsp;
+         <span style="color:#38bdf8">OTE</span> Optimal Entry`
+      : "无匹配结果，请调整筛选条件";
+    return;
+  }
+
+  table.style.display="table"; empty.style.display="none";
+
+  tbody.innerHTML = rows.map((r,i)=>{
+    const cc=r.changePct>=0?"chg-pos":"chg-neg";
+    const cs=r.changePct>=0?"+":"";
+    const strC=r.strength>=8?"#10b981":r.strength>=6?"#f59e0b":"#818cf8";
+    const inWL=wl.has(r.ticker);
+    const isExp=expandedTicker===r.ticker;
+
+    const sigH=r.signals.map(s=>{
+      const sc=SIG[s]||{c:"#9ca3af",bg:"rgba(156,163,175,.1)",border:"rgba(156,163,175,.2)"};
+      return `<span class="sig" style="background:${sc.bg};color:${sc.c};border:1px solid ${sc.border}">${s}</span>`;
+    }).join("");
+
+    const biasH=r.bias==="bullish"
+      ? '<span class="bias-bull">▲ Bull</span>'
+      : '<span class="bias-bear">▼ Bear</span>';
+
+    const vrC=r.volRatio>=1.5?"vr-hi":"vr-lo";
+
+    let html=`<tr class="${inWL?"wl-row":""} ${isExp?"expanded":""}" onclick="toggleDetail('${r.ticker}')">
+      <td class="num-col">${i+1}</td>
+      <td class="ticker-col">${r.ticker}</td>
+      <td class="name-col" title="${r.name}">${r.name}</td>
+      <td><span class="sector-tag">${r.sector}</span></td>
+      <td class="price-col" style="text-align:right">$${fmt(r.price)}</td>
+      <td style="text-align:right"><span class="${cc}">${cs}${fmt(r.changePct)}%</span></td>
+      <td><div class="sigs">${sigH}</div></td>
+      <td><div class="str-wrap">
+        <div class="str-bar"><div class="str-fill" style="width:${r.strength*10}%;background:${strC}"></div></div>
+        <span class="str-num" style="color:${strC}">${r.strength}/10</span>
+      </div></td>
+      <td>${biasH}</td>
+      <td class="lvl-entry" style="text-align:right">$${fmt(r.entry)}</td>
+      <td class="lvl-stop" style="text-align:right">$${fmt(r.stop)}</td>
+      <td class="lvl-target" style="text-align:right">$${fmt(r.target)}</td>
+      <td class="lvl-rr" style="text-align:right">1:${fmt(r.rr)}</td>
+      <td style="text-align:right"><span class="${vrC}">${fmt(r.volRatio,1)}×</span></td>
+      <td>
+        <button class="wl-star ${inWL?"in":""}"
+          onclick="event.stopPropagation();toggleWL('${r.ticker}')"
+          title="${inWL?"移出关注":"加入关注"}">★</button>
+      </td>
+    </tr>`;
+
+    if(isExp){
+      html+=`<tr class="detail-row"><td colspan="15">
+        <div class="detail-grid">
+          <div>
+            <div class="dl">ICT 关键价位</div>
+            ${r.obHigh!=null?`<div class="dv-row"><span class="dv-k">Order Block</span><span class="dv-v" style="color:#10b981">$${fmt(r.obLow)} – $${fmt(r.obHigh)}</span></div>`:""}
+            ${r.fvgTop!=null?`<div class="dv-row"><span class="dv-k">Fair Value Gap</span><span class="dv-v" style="color:#818cf8">$${fmt(r.fvgBot)} – $${fmt(r.fvgTop)}</span></div>`:""}
+            ${r.msbLevel!=null?`<div class="dv-row"><span class="dv-k">MSB Level</span><span class="dv-v" style="color:#f59e0b">$${fmt(r.msbLevel)}</span></div>`:""}
+            <div class="dv-row"><span class="dv-k">ATR (14)</span><span class="dv-v">$${fmt(r.atr)}</span></div>
+          </div>
+          <div>
+            <div class="dl">交易计划</div>
+            <div class="dv-row"><span class="dv-k">Entry</span><span class="dv-v">$${fmt(r.entry)}</span></div>
+            <div class="dv-row"><span class="dv-k">Stop Loss</span><span class="dv-v" style="color:#ef4444">$${fmt(r.stop)}</span></div>
+            <div class="dv-row"><span class="dv-k">Target</span><span class="dv-v" style="color:#10b981">$${fmt(r.target)}</span></div>
+            <div class="dv-row"><span class="dv-k">R:R Ratio</span><span class="dv-v" style="color:#60a5fa">1:${fmt(r.rr)}</span></div>
+          </div>
+          <div>
+            <div class="dl">成交量</div>
+            <div class="dv-row"><span class="dv-k">今日成交量</span><span class="dv-v">${fmtV(r.volume)}</span></div>
+            <div class="dv-row"><span class="dv-k">20日均量</span><span class="dv-v" style="color:#9ca3af">${fmtV(r.avgVolume)}</span></div>
+            <div class="dv-row"><span class="dv-k">量比</span>
+              <span class="dv-v" style="color:${r.volRatio>=1.5?"#f59e0b":"#9ca3af"}">${fmt(r.volRatio)}×</span>
+            </div>
+          </div>
+          <div>
+            <div class="dl">ICT 分析</div>
+            <p class="desc-text">${r.description}</p>
+            <div class="ext-links">
+              <a class="ext-link" href="https://finance.yahoo.com/chart/${r.ticker}" target="_blank" onclick="event.stopPropagation()">Yahoo Finance ↗</a>
+              <a class="ext-link" href="https://www.tradingview.com/chart/?symbol=${r.ticker}" target="_blank" onclick="event.stopPropagation()">TradingView ↗</a>
+            </div>
+          </div>
+        </div>
+      </td></tr>`;
+    }
+    return html;
+  }).join("");
+}
+
+function toggleDetail(ticker){
+  expandedTicker = expandedTicker===ticker ? null : ticker;
+  render();
+}
+
+function toggleWL(ticker){
+  if(wl.has(ticker)) wl.delete(ticker); else wl.add(ticker);
+  saveWL(); updateStats(); render();
+}
+
+// Init
+updateStats();
+</script>
+</body>
+</html>
